@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block title %}Run · {{ user.username }}{% endblock %}
+{% block body %}
+<h1>Provisioning {{ user.username }}</h1>
+<p class="sub">Run status: <span id="runstatus" class="pill na">{{ run.status }}</span>
+&middot; this page is safe to close and reopen.</p>
+
+<div class="panel">
+  <h2 style="margin-top:0">Per-service status</h2>
+  <div class="grid" id="grid">
+    <p class="hint">Connecting…</p>
+  </div>
+</div>
+
+<p>
+  <a class="btn" href="/users/{{ user.id }}">User detail</a>
+  <a class="btn" href="/">All users</a>
+</p>
+
+<script>
+const LABELS = {
+  not_started:["queued","na"], not_applicable:["not applicable","na"],
+  pending_first_login:["awaiting first login","wait"], provisioned:["provisioned","ok"],
+  needs_manual:["needs you","manual"], failed:["failed","bad"],
+  disabled:["disabled","na"], drifted:["drifted","bad"]
+};
+const grid = document.getElementById("grid");
+const runstatus = document.getElementById("runstatus");
+const es = new EventSource("/api/v1/runs/{{ run.id }}/events");
+
+es.addEventListener("progress", e => {
+  const d = JSON.parse(e.data);
+  runstatus.textContent = d.run;
+  runstatus.className = "pill " + (d.run === "succeeded" ? "ok" :
+      (d.run === "partial" ? "manual" : (d.run === "failed" ? "bad" : "na")));
+  const jobs = {};
+  for (const j of d.jobs) jobs[j.connector] = j;
+  grid.innerHTML = d.services.map(s => {
+    const [text, cls] = LABELS[s.state] || [s.state, "na"];
+    const j = jobs[s.connector];
+    let extra = "";
+    if (s.state === "failed" && j) {
+      extra = `<div class="d">attempt ${j.attempts} — ${escapeHtml(j.error || s.error || "")}</div>`;
+    } else if (s.state === "needs_manual" && s.manual) {
+      extra = `<div class="d">${escapeHtml(s.manual)}</div>`;
+    } else if (j && j.status === "queued" && j.attempts > 0) {
+      extra = `<div class="d">retrying (attempt ${j.attempts})</div>`;
+    }
+    return `<div class="card"><div class="n">${escapeHtml(s.connector)}</div>
+            <div style="margin:.3rem 0"><span class="pill ${cls}">${text}</span></div>${extra}</div>`;
+  }).join("");
+});
+
+es.addEventListener("done", e => { es.close(); });
+es.onerror = () => { /* browser retries automatically */ };
+
+function escapeHtml(s){ const d=document.createElement("div"); d.textContent=s??""; return d.innerHTML; }
+</script>
+{% endblock %}

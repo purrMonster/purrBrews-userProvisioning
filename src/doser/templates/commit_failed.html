@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}Commit failed{% endblock %}
+{% block body %}
+<h1>Nothing was created</h1>
+<p class="sub">The lldap write failed, so the run stopped before anything else ran.</p>
+
+<div class="errors">
+  <strong>lldap said:</strong>
+  <p style="margin:.5rem 0 0">{{ error }}</p>
+</div>
+
+<div class="panel">
+  <p>This is the intended behaviour, not a partial mess. lldap is the source of truth —
+  without an identity there, nothing downstream would be meaningful, so no jobs were queued
+  and no account exists in any service.</p>
+  <p class="hint">Check <a href="/connectors">Connectors → lldap → Check</a> first; a credential
+  or connectivity problem there explains most failures at this step.</p>
+  <p style="margin-top:1rem">
+    <a class="btn primary" href="/users/{{ user.id }}/plan">Try again</a>
+    <a class="btn" href="/users/{{ user.id }}">Back to {{ user.username }}</a>
+  </p>
+</div>
+{% endblock %}

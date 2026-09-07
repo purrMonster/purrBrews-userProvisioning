@@ -1,0 +1,28 @@
+# Secrets — never commit. Mode 0600 on the real file.
+deploy/local.env
+*.env.local
+.env
+
+# Local database and scratch
+*.db
+*.db-journal
+*.db-wal
+doser.db*
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+dist/
+build/
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# Editors / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

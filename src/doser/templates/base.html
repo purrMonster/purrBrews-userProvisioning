@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% block title %}doser{% endblock %} · PurrBrews</title>
+<link rel="icon" href="/favicon.ico" type="image/svg+xml">
+<style>
+:root{
+  --bg:#faf8f5; --panel:#fff; --ink:#241d17; --muted:#6b6058; --line:#e4ddd4;
+  --accent:#6f4e37; --accent-ink:#fff;
+  --ok:#1f6b40; --ok-bg:#e6f4ec; --bad:#a32020; --bad-bg:#fbeaea;
+  --warn:#8a5a00; --warn-bg:#fdf3e0; --na:#6b6058; --na-bg:#f0ece7;
+}
+@media (prefers-color-scheme:dark){:root{
+  --bg:#17130f; --panel:#211b16; --ink:#f0e9e1; --muted:#a89a8c; --line:#3a2f26;
+  --accent:#c8a27c; --accent-ink:#17130f;
+  --ok:#7fd6a3; --ok-bg:#16301f; --bad:#f19a9a; --bad-bg:#3a1c1c;
+  --warn:#e8bf76; --warn-bg:#33270f; --na:#a89a8c; --na-bg:#2a231d;
+}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);
+  font:15px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+a{color:var(--accent)}
+header{background:var(--panel);border-bottom:1px solid var(--line);padding:.75rem 1.25rem;
+  display:flex;gap:1.25rem;align-items:center;flex-wrap:wrap}
+header .brand{font-weight:700;letter-spacing:-.02em;font-size:1.05rem}
+header nav a{margin-right:1rem;text-decoration:none;font-weight:500}
+header .who{margin-left:auto;color:var(--muted);font-size:.85rem}
+main{max-width:1000px;margin:1.5rem auto;padding:0 1.25rem}
+h1{font-size:1.5rem;margin:0 0 .25rem;letter-spacing:-.02em}
+h2{font-size:1.05rem;margin:1.75rem 0 .6rem;letter-spacing:-.01em}
+.sub{color:var(--muted);margin:0 0 1.5rem}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:1.1rem;margin-bottom:1rem}
+table{width:100%;border-collapse:collapse;font-size:.92rem}
+th,td{text-align:left;padding:.55rem .5rem;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-weight:600;color:var(--muted);font-size:.8rem;text-transform:uppercase;letter-spacing:.04em}
+.pill{display:inline-block;padding:.12rem .5rem;border-radius:99px;font-size:.75rem;font-weight:600;white-space:nowrap}
+.pill.ok{background:var(--ok-bg);color:var(--ok)}
+.pill.bad{background:var(--bad-bg);color:var(--bad)}
+.pill.manual,.pill.wait{background:var(--warn-bg);color:var(--warn)}
+.pill.na{background:var(--na-bg);color:var(--na)}
+label{display:block;font-weight:600;font-size:.85rem;margin:.9rem 0 .25rem}
+input[type=text],input[type=email],select,textarea{width:100%;padding:.5rem .6rem;font:inherit;
+  border:1px solid var(--line);border-radius:7px;background:var(--bg);color:var(--ink)}
+.hint{color:var(--muted);font-size:.8rem;margin-top:.2rem}
+button,.btn{font:inherit;font-weight:600;padding:.55rem 1.1rem;border-radius:7px;border:1px solid var(--line);
+  background:var(--panel);color:var(--ink);cursor:pointer;text-decoration:none;display:inline-block}
+button.primary,.btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.danger-zone{border:1px solid var(--bad);background:var(--bad-bg);border-radius:8px;padding:.8rem;margin:.9rem 0}
+.errors{background:var(--bad-bg);border:1px solid var(--bad);color:var(--bad);border-radius:8px;padding:.8rem 1rem;margin-bottom:1rem}
+.errors ul{margin:.4rem 0 0 1rem;padding:0}
+.note{background:var(--warn-bg);border-left:3px solid var(--warn);padding:.6rem .8rem;border-radius:0 6px 6px 0;margin:.6rem 0;font-size:.9rem}
+.avatar{width:40px;height:40px;border-radius:50%;object-fit:cover;border:1px solid var(--line)}
+code{background:var(--na-bg);padding:.1rem .3rem;border-radius:4px;font-size:.85em}
+details summary{cursor:pointer;font-weight:600;color:var(--muted);font-size:.9rem;padding:.3rem 0}
+.commit{border:2px solid var(--accent);border-radius:9px;padding:.85rem 1rem;background:var(--panel)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:.7rem}
+.card{border:1px solid var(--line);border-radius:8px;padding:.7rem .8rem;background:var(--panel)}
+.card .n{font-weight:600;font-size:.9rem}
+.card .d{color:var(--muted);font-size:.8rem;margin-top:.25rem}
+.wrap{overflow-x:auto}
+</style>
+</head>
+<body>
+<header>
+  <span class="brand">doser</span>
+  <nav>
+    <a href="/">Users</a>
+    <a href="/users/new">New user</a>
+    <a href="/connectors">Connectors</a>
+    <a href="/api/docs">API</a>
+  </nav>
+  <span class="who">{{ op.username }}</span>
+</header>
+<main>
+{% block body %}{% endblock %}
+</main>
+</body>
+</html>

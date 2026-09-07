@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% block title %}{{ user.username }}{% endblock %}
+{% block body %}
+<h1 style="display:flex;align-items:center;gap:.7rem">
+  {% if user.avatar_sha256 %}<img class="avatar" src="/api/v1/avatars/{{ user.avatar_sha256 }}" alt="">{% endif %}
+  {{ user.username }}
+</h1>
+<p class="sub">{{ user.display_name }} · {{ user.email }} ·
+  profile <strong>{{ user.profile }}</strong> ·
+  <span class="pill {{ 'ok' if user.status=='active' else 'bad' if user.status in ['failed','partial'] else 'na' }}">{{ user.status }}</span>
+</p>
+
+{% set outstanding = user.accounts | selectattr('state','in',['needs_manual','failed','drifted']) | list %}
+{% if outstanding %}
+<div class="panel" style="border-color:var(--warn)">
+  <h2 style="margin-top:0">Unfinished business ({{ outstanding|length }})</h2>
+  {% for a in outstanding %}
+  <div style="margin-bottom:.9rem">
+    <strong>{{ registry[a.connector].label if a.connector in registry else a.connector }}</strong>
+    <span class="pill {{ state_label[a.state][1] }}">{{ state_label[a.state][0] }}</span>
+    {% if a.manual_instruction %}<div class="note">{{ a.manual_instruction }}</div>{% endif %}
+    {% if a.last_error %}<div class="note">{{ a.last_error }}</div>{% endif %}
+    <form method="post" action="/api/v1/users/{{ user.id }}/services/{{ a.connector }}/{{ 'ack-manual' if a.state=='needs_manual' else 'retry' }}" style="display:inline">
+      <button type="submit">{{ 'Mark done' if a.state == 'needs_manual' else 'Retry' }}</button>
+    </form>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+<h2>Services</h2>
+<div class="panel wrap">
+<table>
+<tr><th>Service</th><th>How</th><th>State</th><th>Detail</th></tr>
+{% for a in user.accounts|sort(attribute='connector') %}
+<tr>
+  <td><strong>{{ registry[a.connector].label if a.connector in registry else a.connector }}</strong></td>
+  <td class="hint">{{ tier_label[a.tier] }}</td>
+  <td><span class="pill {{ state_label[a.state][1] }}">{{ state_label[a.state][0] }}</span></td>
+  <td class="hint">
+    {% if a.external_id %}<code>{{ a.external_id }}</code>{% endif %}
+    {% if a.manual_instruction %}<div>{{ a.manual_instruction }}</div>{% endif %}
+    {% if a.last_error %}<div>{{ a.last_error }}</div>{% endif %}
+  </td>
+</tr>
+{% else %}
+<tr><td colspan="4" class="hint">Not provisioned yet.</td></tr>
+{% endfor %}
+</table>
+</div>
+
+<h2>Actions</h2>
+<div class="panel">
+  {% if user.status in ['draft','failed'] %}
+    <a class="btn primary" href="/users/{{ user.id }}/plan?kind=provision">Provision</a>
+  {% elif user.status in ['active','partial'] %}
+    <a class="btn" href="/users/{{ user.id }}/plan?kind=update">Update</a>
+    <a class="btn" href="/users/{{ user.id }}/plan?kind=disable">Disable</a>
+  {% elif user.status == 'disabled' %}
+    <a class="btn" href="/users/{{ user.id }}/plan?kind=enable">Re-enable</a>
+  {% endif %}
+  <p class="hint" style="margin-top:.7rem">Active accounts are disabled, never deleted.
+  Offboarding produces a checklist — data ownership is a human decision, not an API call.</p>
+</div>
+
+<h2>Runs</h2>
+<div class="panel wrap">
+<table>
+<tr><th>When</th><th>Kind</th><th>Status</th><th></th></tr>
+{% for r in runs %}
+<tr>
+  <td class="hint">{{ r.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+  <td>{{ r.kind }}</td>
+  <td><span class="pill {{ 'ok' if r.status=='succeeded' else 'bad' if r.status in ['failed'] else 'manual' if r.status=='partial' else 'na' }}">{{ r.status }}</span></td>
+  <td><a href="/runs/{{ r.id }}">View</a></td>
+</tr>
+{% else %}
+<tr><td colspan="4" class="hint">No runs yet.</td></tr>
+{% endfor %}
+</table>
+</div>
+{% endblock %}

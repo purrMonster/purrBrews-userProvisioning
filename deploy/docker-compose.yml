@@ -1,0 +1,53 @@
+services:
+  doser:
+    image: ghcr.io/purrmonster/doser:${DOSER_TAG:-0.1.0}
+    container_name: doser
+    restart: unless-stopped
+    env_file: [./local.env]
+    depends_on:
+      doser-db: { condition: service_healthy }
+    networks: [silo_proxy, doser_internal]
+    # NO ports: — deliberately. The most important line in this file is the one
+    # that isn't here. If this container is reachable off the Traefik path,
+    # anyone who can reach it can set Remote-Groups and become a fleet admin.
+    # docs/07 §2.2.
+    read_only: true
+    tmpfs: [/tmp]
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    mem_limit: 512m
+    labels:
+      # Routed on silo's Traefik. LAN + Headscale tailnet only — do NOT add a
+      # Cloudflare Zero Trust hostname route for this (decision D7).
+      - "traefik.enable=true"
+      - "traefik.http.routers.doser.rule=Host(`provision.${DOSER_DOMAIN}`)"
+      - "traefik.http.routers.doser.middlewares=authelia@file,security-headers@file"
+      - "traefik.http.services.doser.loadbalancer.server.port=8000"
+
+  doser-db:
+    image: postgres:16-alpine
+    container_name: doser-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: doser
+      POSTGRES_USER: doser
+      POSTGRES_PASSWORD: ${DOSER_DB_PASSWORD}
+    command: >
+      postgres -c shared_buffers=64MB -c max_connections=20
+               -c effective_cache_size=192MB
+    volumes:
+      - ${DATA_DIR:-/srv/data}/doser/pgdata:/var/lib/postgresql/data
+    networks: [doser_internal]
+    mem_limit: 256m
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U doser"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+networks:
+  silo_proxy:
+    external: true
+  doser_internal:
+    # The database has no route off this network at all.
+    internal: true

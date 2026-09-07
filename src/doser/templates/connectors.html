@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+{% block title %}Connectors{% endblock %}
+{% block body %}
+<h1>Connectors</h1>
+<p class="sub">User-facing applications only. System-maintenance surfaces (Komodo, Scrutiny, Diun,
+NetAlertX, Headscale, n8n) are deliberately not registered — they are operator tools, not
+household accounts.</p>
+
+<div class="panel">
+  <button class="primary" id="checkall" onclick="checkAll()">Check all</button>
+  <a class="btn" href="/api/v1/connectors/health/report.txt" download>Download report (.txt)</a>
+  <a class="btn" href="/api/v1/connectors/health/report.xml" download>Download report (.xml)</a>
+  <span class="hint" id="allsummary" style="margin-left:.6rem"></span>
+  <p class="hint" style="margin-top:.6rem">Credentials are redacted from the report — known
+  secret values are replaced by exact match, and anything credential-shaped (a URL with
+  embedded auth, a bearer token, a long opaque key) is caught by pattern too. It is meant to
+  be shareable.</p>
+</div>
+
+<div class="panel wrap">
+<table>
+<tr><th>Service</th><th>How accounts appear</th><th>Configured</th><th>Health</th></tr>
+{% for c in connectors %}
+<tr>
+  <td>
+    <strong>{{ c.label }}</strong>
+    {% if c.required %}<br><span class="pill bad">required</span>{% endif %}
+    {% if c.base_url %}<div class="hint" style="margin-top:.3rem"><code>{{ c.base_url }}</code></div>{% endif %}
+  </td>
+  <td>
+    {{ tier_label[c.tier] }}
+    {% if c.caveat %}<div class="note">{{ c.caveat }}</div>{% endif %}
+  </td>
+  <td>
+    {% if c.configured %}<span class="pill ok">yes</span>
+    {% else %}<span class="pill bad">no</span>
+      <div class="hint">Will be skipped and reported as skipped — never silently.</div>
+    {% endif %}
+  </td>
+  <td>
+    <button onclick="check('{{ c.name }}', this)">Check</button>
+    <div class="hint" id="h-{{ c.name }}"></div>
+  </td>
+</tr>
+{% endfor %}
+</table>
+</div>
+
+<h2>Profiles</h2>
+<div class="panel">
+{% for name, p in profiles.items() %}
+<p><strong>{{ name }}</strong>{% if p.is_privileged %} <span class="pill bad">fleet admin</span>{% endif %}<br>
+<span class="hint">{{ p.description }}</span><br>
+<span class="hint">{{ p.connectors | join(', ') }}</span></p>
+{% endfor %}
+<p class="hint">Profiles make least-privilege the default path rather than something you have to
+remember to do while tired.</p>
+</div>
+
+<script>
+function render(name, ok, detail, latency){
+  const out = document.getElementById("h-" + name);
+  if (!out) return;
+  out.textContent = (ok ? "✓ " : "✗ ") + detail + (latency ? ` (${Math.round(latency)} ms)` : "");
+  out.style.color = ok ? "var(--ok)" : "var(--bad)";
+}
+
+async function check(name, btn){
+  const out = document.getElementById("h-" + name);
+  btn.disabled = true; out.textContent = "checking…"; out.style.color = "";
+  try {
+    const r = await fetch(`/api/v1/connectors/${name}/health`, {method:"POST"});
+    const d = await r.json();
+    render(name, d.ok, d.detail, d.latency_ms);
+  } catch(e){ render(name, false, String(e), null); }
+  btn.disabled = false;
+}
+
+async function checkAll(){
+  const btn = document.getElementById("checkall");
+  const sum = document.getElementById("allsummary");
+  btn.disabled = true; sum.textContent = "checking all…"; sum.style.color = "";
+  document.querySelectorAll('[id^="h-"]').forEach(el => {
+    el.textContent = "checking…"; el.style.color = "";
+  });
+  try {
+    const r = await fetch("/api/v1/connectors/health", {method:"POST"});
+    const d = await r.json();
+    for (const c of d.connectors) render(c.name, c.ok, c.detail, c.latency_ms);
+    const s = d.summary;
+    sum.textContent = `${s.ok} ok · ${s.unhealthy} unhealthy · ${s.not_configured} not configured`;
+    sum.style.color = s.unhealthy ? "var(--bad)" : "var(--ok)";
+  } catch(e){ sum.textContent = "failed: " + e; sum.style.color = "var(--bad)"; }
+  btn.disabled = false;
+}
+</script>
+{% endblock %}

@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block title %}New user{% endblock %}
+{% block body %}
+<h1>New user</h1>
+<p class="sub">Nothing is created yet. The next screen shows exactly what will happen, service by service.</p>
+
+{% if errors %}
+<div class="errors"><strong>Fix these first:</strong>
+<ul>{% for e in errors %}<li>{{ e }}</li>{% endfor %}</ul></div>
+{% endif %}
+
+<form method="post" action="/users/new" enctype="multipart/form-data" class="panel">
+  <label for="first_name">First name</label>
+  <input id="first_name" name="first_name" type="text" required value="{{ form.first_name or '' }}">
+
+  <label for="last_name">Last name</label>
+  <input id="last_name" name="last_name" type="text" required value="{{ form.last_name or '' }}">
+
+  <label for="username">Username</label>
+  <input id="username" name="username" type="text" required value="{{ form.username or '' }}"
+         pattern="[a-z][a-z0-9._-]{1,31}">
+  <p class="hint">Lowercase, starts with a letter. This becomes the lldap uid and the login name everywhere.</p>
+
+  <label for="email">Email</label>
+  <input id="email" name="email" type="email" required value="{{ form.email or '' }}">
+  <p class="hint">Several services link SSO accounts by email, so this needs to be right.</p>
+
+  <label for="display_name">Display name</label>
+  <input id="display_name" name="display_name" type="text" value="{{ form.display_name or '' }}"
+         placeholder="defaults to First Last">
+
+  <label for="avatar">Profile picture <span style="font-weight:400;color:var(--muted)">(optional)</span></label>
+  <input id="avatar" name="avatar" type="file" accept="image/jpeg,image/png,image/webp,image/heic">
+  <p class="hint">Re-encoded to a 512×512 JPEG. Location and camera metadata are stripped —
+  profile photos often carry GPS coordinates, and those would otherwise propagate to Immich,
+  Nextcloud and Jellyfin.</p>
+
+  <label for="profile">Profile</label>
+  <select id="profile" name="profile" onchange="document.getElementById('privbox').style.display=this.value==='infra_admin'?'block':'none'">
+    {% for name, p in profiles.items() %}
+    <option value="{{ name }}" {% if form.profile == name %}selected{% endif %}>{{ name }} — {{ p.description }}</option>
+    {% endfor %}
+  </select>
+
+  <div id="privbox" class="danger-zone" style="display:{{ 'block' if form.profile == 'infra_admin' else 'none' }}">
+    <strong>infra_admin grants fleet-admin access.</strong>
+    <p style="margin:.4rem 0 .6rem;font-size:.9rem">This puts the account in
+    <code>purrbrews_infra_admins</code>, which is what gates every admin surface on the fleet.
+    Household members should not have it.</p>
+    <label style="display:flex;gap:.5rem;align-items:flex-start;font-weight:500">
+      <input type="checkbox" name="confirm_privileged" value="1" style="width:auto;margin-top:.2rem">
+      <span>I understand this grants fleet administrator access.</span>
+    </label>
+  </div>
+
+  <label for="notes">Notes</label>
+  <textarea id="notes" name="notes" rows="2">{{ form.notes or '' }}</textarea>
+  <p class="hint">Goes to the audit trail.</p>
+
+  <p style="margin-top:1.2rem">
+    <button class="primary" type="submit">Review the plan →</button>
+    <a class="btn" href="/">Cancel</a>
+  </p>
+</form>
+{% endblock %}

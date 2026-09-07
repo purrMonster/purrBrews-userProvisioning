@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+{% block title %}Plan · {{ user.username }}{% endblock %}
+{% block body %}
+<h1>{{ plan.kind|capitalize }} · {{ user.username }}</h1>
+<p class="sub">{{ user.display_name }} · {{ user.email }} · profile <strong>{{ plan.profile }}</strong></p>
+
+{% set calls = plan.steps | selectattr('action','in',['create','disable']) | list %}
+{% set none_ = plan.steps | selectattr('action','equalto','none') | list %}
+{% set manual = plan.steps | selectattr('action','equalto','manual') | list %}
+
+{% if plan.commit_step %}
+<h2>Commit step — runs first, and must succeed</h2>
+<div class="commit">
+  <strong>{{ plan.commit_step.label }}</strong><br>
+  {{ plan.commit_step.summary }}
+  <p class="hint" style="margin:.5rem 0 0">If this fails, nothing else runs and no account is created anywhere.</p>
+</div>
+{% endif %}
+
+<h2>Will be called ({{ calls|length }})</h2>
+{% if calls %}
+<div class="panel wrap"><table>
+{% for s in calls %}
+<tr>
+  <td style="width:32%"><strong>{{ s.label }}</strong><br><span class="hint">{{ tier_label[s.tier] }}</span></td>
+  <td>{{ s.summary }}
+    {% if s.warning %}<div class="note">{{ s.warning }}</div>{% endif %}
+  </td>
+</tr>
+{% endfor %}
+</table></div>
+{% else %}
+<div class="panel"><p class="hint">Nothing needs an API call — everything is handled by lldap and SSO.</p></div>
+{% endif %}
+
+{% if manual %}
+<h2>You will need to do this by hand ({{ manual|length }})</h2>
+<div class="panel">
+{% for s in manual %}
+  <div style="margin-bottom:.8rem">
+    <strong>{{ s.label }}</strong> — {{ s.summary }}
+    <div class="note">{{ s.manual_instruction }}</div>
+  </div>
+{% endfor %}
+</div>
+{% endif %}
+
+<h2>No action needed ({{ none_|length }})</h2>
+<div class="panel">
+<details>
+  <summary>Show what these are and why nothing is called</summary>
+  <table style="margin-top:.5rem">
+  {% for s in none_ %}
+  <tr>
+    <td style="width:32%"><strong>{{ s.label }}</strong></td>
+    <td>{{ s.summary }}{% if s.warning %}<div class="note">{{ s.warning }}</div>{% endif %}</td>
+  </tr>
+  {% endfor %}
+  </table>
+</details>
+<p class="hint" style="margin-top:.6rem">These either bind to lldap, accept SSO from Authelia, or have no
+account model at all. Pre-creating an account in the first two would usually produce a second,
+unlinked account.</p>
+</div>
+
+{% if plan.warnings %}
+<h2>Worth knowing</h2>
+<div class="panel">
+{% for w in plan.warnings %}<div class="note">{{ w }}</div>{% endfor %}
+</div>
+{% endif %}
+
+<form method="post" action="/runs/{{ run.id }}/confirm" style="margin-top:1.5rem">
+  <button class="primary" type="submit">Confirm and provision</button>
+  <a class="btn" href="/users/{{ user.id }}">Cancel</a>
+</form>
+{% endblock %}

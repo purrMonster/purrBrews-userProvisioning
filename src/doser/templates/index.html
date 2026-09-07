@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block title %}Users{% endblock %}
+{% block body %}
+<h1>Users</h1>
+<p class="sub">Identities provisioned across the PurrBrews fleet.</p>
+
+{% if not users %}
+<div class="panel">
+  <p>No users yet.</p>
+  <p class="hint">Start with <a href="/users/new">New user</a>. Nothing is created
+  until you review and confirm a plan.</p>
+</div>
+{% else %}
+<div class="panel wrap">
+<table>
+<tr><th>User</th><th>Profile</th><th>Status</th><th>Services</th><th></th></tr>
+{% for u in users %}
+{% set ok = u.accounts | selectattr('state','equalto','provisioned') | list | length %}
+{% set wait = u.accounts | selectattr('state','equalto','pending_first_login') | list | length %}
+{% set man = u.accounts | selectattr('state','equalto','needs_manual') | list | length %}
+{% set bad = u.accounts | rejectattr('state','in',['provisioned','pending_first_login','needs_manual','not_applicable']) | list | length %}
+<tr>
+  <td>
+    <strong>{{ u.username }}</strong><br>
+    <span class="hint">{{ u.display_name }} · {{ u.email }}</span>
+  </td>
+  <td>
+    {{ u.profile }}
+    {% if profiles[u.profile].is_privileged %}<br><span class="pill bad">fleet admin</span>{% endif %}
+  </td>
+  <td><span class="pill {{ 'ok' if u.status=='active' else 'bad' if u.status in ['failed','partial'] else 'na' }}">{{ u.status }}</span></td>
+  <td class="hint">
+    {% if ok %}{{ ok }} provisioned{% endif %}
+    {% if wait %} · {{ wait }} awaiting login{% endif %}
+    {% if man %} · <strong>{{ man }} need you</strong>{% endif %}
+    {% if bad %} · <strong>{{ bad }} failed</strong>{% endif %}
+    {% if not u.accounts %}not yet provisioned{% endif %}
+  </td>
+  <td><a class="btn" href="/users/{{ u.id }}">Open</a></td>
+</tr>
+{% endfor %}
+</table>
+</div>
+{% endif %}
+{% endblock %}
